@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DropFolder, Folder } from "./_components";
+import JavaFilePreview from "./_components/java-preview";
 
 export default function Home() {
   const [folder, setFolder] = useState<Folder[]>([]);
@@ -23,6 +24,8 @@ export default function Home() {
               setFolderError={setFolderError}
               setFilePaths={setFilePaths}
             />
+
+            <JavaFilePreview></JavaFilePreview>
           </div>
         </div>
       </main>
