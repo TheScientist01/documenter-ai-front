@@ -42,9 +42,6 @@ const JavaFilePreview: React.FC = () => {
     }
   };
 
-  console.log(selectedText);
-
-
   return (
     <div>
       <input type="file" accept=".java" multiple onChange={handleFileUpload} />
