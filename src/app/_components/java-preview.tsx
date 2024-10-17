@@ -10,7 +10,6 @@ const JavaFilePreview: React.FC = () => {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
-    // Filter out only .java files
     const javaFiles = uploadedFiles.filter(
       (file) => file.type === 'text/x-java-source' || file.name.endsWith('.java')
     );

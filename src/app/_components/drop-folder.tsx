@@ -60,31 +60,25 @@ export interface Folder {
 export function DropFolder({
   folder,
   folderError,
+  activeFile,
   setFolder,
   setFolderError,
   setFilePaths,
   setDeletedPath,
+  handleFileClick
 }: {
   folder: Folder[];
   folderError: string;
+  activeFile: string;
   setFolder: (folder: Folder[]) => void;
   setFolderError: (error: string) => void;
   setFilePaths: (filePaths: any) => void;
   setDeletedPath?: (paths: any) => void;
+  handleFileClick: (path: string) => void
 }) {
   const [rootFolderName, setRootFolderName] = useState<string>("");
   const [selectedFileContent, setSelectedFileContent] = useState<string>("");
   const [dragEnter, setDragEnter] = useState<boolean>(false);
-
-  const styleSlots = fieldStyles({ size: "md" });
-
-  const emptyFolder: Folder = {
-    name: "output",
-    kind: "directory",
-    path: "output",
-    isOpen: false,
-    children: [],
-  };
 
   function folderSizeValidator(fileList: File[]): boolean {
     // in Bytes
@@ -310,7 +304,6 @@ export function DropFolder({
 
         setFolder(
           sortFolder([
-            emptyFolder,
             ...filePaths.map((file: any) => ({
               name: file.name,
               kind: "file" as "file",
@@ -322,16 +315,6 @@ export function DropFolder({
         setFolderError("Project size can't be bigger than 512Mb");
       }
     }
-  };
-
-  const handleFileClick = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target) {
-        setSelectedFileContent(e.target.result as string);
-      }
-    };
-    reader.readAsText(file);
   };
 
   function FolderComponent({
@@ -351,15 +334,15 @@ export function DropFolder({
       function deleteFolder(folders: Folder[]): Folder[] {
         return folders
           ? folders.filter((child) => {
-              if (child.path === file.path) {
-                // Found the target folder, exclude it from the result
-                return false;
-              } else if (child.children) {
-                // Recursively filter children
-                child.children = deleteFolder(child.children);
-              }
-              return true;
-            })
+            if (child.path === file.path) {
+              // Found the target folder, exclude it from the result
+              return false;
+            } else if (child.children) {
+              // Recursively filter children
+              child.children = deleteFolder(child.children);
+            }
+            return true;
+          })
           : folders;
       }
 
@@ -375,14 +358,14 @@ export function DropFolder({
         !prev
           ? prev
           : prev.filter(
-              (element) =>
-                !regex.test(
-                  "/" +
-                    (element.path
-                      ? element.path.split("/").slice(2).join("/")
-                      : element.name)
-                )
-            )
+            (element) =>
+              !regex.test(
+                "/" +
+                (element.path
+                  ? element.path.split("/").slice(2).join("/")
+                  : element.name)
+              )
+          )
       );
 
       setFolder(updatedFolders);
@@ -398,12 +381,13 @@ export function DropFolder({
             indentLevel={indentLevel}
             setFolder={setFolder}
             handleRemoveFile={handleRemoveFile}
+            setPreviewFile={setPreviewFile}
           />
         ) : (
           <div
-            className={`flex h-11 w-full items-center justify-between border-b border-tuna pr-5 hover:bg-tuna [&>div]:hover:!opacity-100`}
+            className={`flex h-11 w-full items-center justify-between border-b border-tuna pr-5 hover:bg-tuna [&>div]:hover:!opacity-100 ${activeFile === folder.path && "bg-[#0058C1] bg-opacity-50"}`}
             style={{ paddingLeft: `${indentLevel * 20 + 20}px` }}
-            onClick={() => console.log(folder)}
+            onClick={() => setPreviewFile && setPreviewFile(folder.path)}
           >
             <div className="flex items-center gap-0.5">
               <FileIcon />
@@ -647,7 +631,7 @@ export function DropFolder({
         rootElement.children &&
         !rootElement?.children?.find((child: any) => child.name === "output")
       ) {
-        rootElement.children = [...rootElement.children, emptyFolder];
+        rootElement.children = [...rootElement.children];
       }
 
       setFilePaths(
@@ -722,9 +706,9 @@ export function DropFolder({
   }
 
   return (
-    <div>
+    <div className="w-full">
       {folder?.length ? (
-        <div className="flex w-fit items-center px-3 pb-2 text-base font-bold">
+        <div className="flex items-center px-3 pb-2 text-base font-bold">
           <div>{rootFolderName ? rootFolderName.toUpperCase() : "PROJECT"}</div>
           <div onClick={handleRemove} className="h-4 cursor-pointer">
             <RemoveIcon />
@@ -770,17 +754,16 @@ export function DropFolder({
         </div>
       ) : null}
       <div className="flex w-full flex-col items-center gap-5">
-        <Card
-          className={`w-full ${
-            dragEnter
-              ? "border-2 border-dashed bg-smoke"
-              : `bg-shark ${folderError && "border-fuzzy"}`
-          }`}
+        <div
+          className={`w-full h-full ${dragEnter
+            ? "border-2 border-dashed bg-smoke rounded-lg"
+            : `bg-shark ${folderError && "border-fuzzy"}`
+            }`}
         >
-          <CardBody className="!p-0">
+          <div className="!p-0">
             {!folder?.length ? (
               <div
-                className="relative flex h-[273px] flex-col items-center justify-center gap-1 rounded-[12px] p-[39px]"
+                className="relative flex h-[calc(100vh-150px)] flex-col items-center justify-center gap-1 rounded-[12px] p-[39px]"
                 {...getRootProps()}
               >
                 <input {...getInputProps()} />
@@ -828,8 +811,8 @@ export function DropFolder({
                 </SyntaxHighlighter>
               </div>
             )}
-          </CardBody>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
