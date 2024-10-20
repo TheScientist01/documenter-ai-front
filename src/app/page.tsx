@@ -2,28 +2,67 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DropFolder, Folder } from "./_components";
-import JavaFilePreview from "./_components/java-preview";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { dark, atomDark, a11yDark, coldarkDark, dracula, darcula } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { darcula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import Logo from "@/assets/images/logo.png"
 import Image from "next/image";
+import { SwitchArrowsIcon } from "@/assets/icons";
+import { usePostFileMutation } from "@/api/upload";
+import {
+  HydrationBoundary,
+  QueryClient,
+  QueryClientProvider,
+} from "@tanstack/react-query";
+import ReactMarkdown from 'react-markdown';
+
 
 export default function Home() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        staleTime: Infinity,
+      },
+    },
+  });
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <HomePageContent />
+    </QueryClientProvider>
+  );
+}
+
+
+
+function HomePageContent() {
   const [folder, setFolder] = useState<Folder[]>([]);
   const [filePaths, setFilePaths] = useState<any>(null);
   const [folderError, setFolderError] = useState<string>("");
   const [selectedFileContent, setSelectedFileContent] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const codeContainerRef = useRef<HTMLDivElement>(null);
   const [selectedText, setSelectedText] = useState<string>('');
   const [buttonPosition, setButtonPosition] = useState<{ top: number; left: number } | null>(null);
   const [isButtonVisible, setIsButtonVisible] = useState<boolean>(false);
   const [activeFilePath, setActiveFilePath] = useState<string>("")
+  const [isOutput, setIsOutput] = useState<boolean>(false)
+  const [markdownContent, setMarkdownContent] = useState<string>('');
+
+  const { mutate: upload, isPending, data } = usePostFileMutation()
+
+  console.log(folder);
+  
 
   const handleFileClick = (path: string) => {
-    const file = filePaths.find((file: any) => file.path.split("/").slice(2).join("/") === path)
+    const file = filePaths.find((file: any) => file?.path ? file.path.split("/").slice(2).join("/") : file.name === path)
+
+    console.log(file, filePaths);
+
 
     if (!!file) {
       setActiveFilePath(path)
+      setSelectedFile(file)
     }
 
     const reader = new FileReader();
@@ -52,7 +91,7 @@ export default function Home() {
             // Adjust the button position to be relative to the container
             setButtonPosition({
               top: rect.top - containerRect.top - 40, // Place it above the selected text with an offset
-              left: rect.left - containerRect.left,
+              left: rect.left - containerRect.left + 50,
             });
 
             // Add delay for visibility to create smooth animation
@@ -78,12 +117,38 @@ export default function Home() {
     }
   }, [buttonPosition, window?.getSelection()]);
 
+  useEffect(() => {
+    if (!folder.length) {
+      setActiveFilePath("")
+      setSelectedFileContent("")
+    }
+  }, [folder])
+
+  useEffect(() => {
+    if (data && data.data && data.data.download_link) {
+      const downloadUrl = data.data.download_link;
+
+      // Fetch the markdown file content
+      fetch(downloadUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.text();
+        })
+        .then((text) => {
+          setMarkdownContent(text); // Set the Markdown content
+        })
+        .catch((error) => {
+          console.error("There was an error fetching the markdown file:", error);
+        });
+    }
+  }, [data]);
+
   return (
     <div style={styles.wrapper}>
-      {/* Sidebar with DropFolder */}
       {/* @ts-ignore */}
       <div style={styles.sidebar}>
-        {/* <h2 className="text-black font-semibold text-[20px]">Documenter AI</h2> */}
         <div className="rounded-lg w-full">
           <DropFolder
             folder={folder}
@@ -102,10 +167,32 @@ export default function Home() {
       <div style={styles.mainContent}>
         {selectedFileContent ? (
           <div style={{ position: 'relative', width: '100%' }}>
-            <div ref={codeContainerRef} onMouseUp={handleMouseUp} className="h-[calc(100vh-20px)] overflow-auto" >
-              <SyntaxHighlighter language="java" style={darcula} showLineNumbers>
+            <div className="absolute top-4 right-4 flex gap-2">
+              {!isOutput && <button onClick={() => {
+                const formData = new FormData();
+                selectedFile && formData.append("file", selectedFile)
+                upload(formData)
+              }}
+                disabled={isPending}
+                className={`py-2 px-3 rounded-md bg-[#181818] duration-300 font-semibold ${!isPending && "hover:scale-[1.05] "}`}>
+                <div className={`${isPending && "opacity-50"}`}>
+                  File documentation
+                </div>
+              </button>}
+              <button onClick={() => { setIsOutput(prev => !prev) }} className={`p-2 rounded-md bg-[#181818] hover:scale-[1.05] duration-300 ${!isPending && "hover:scale-[1.05] "}`} disabled={isPending || !markdownContent}>
+                <div style={{ transform: `rotate(${isOutput ? "180" : "0"}deg)` }} className={`transition-transform duration-300 ease-in-out ${isPending && "rotate-infinite opacity-50"}`}>
+                  <SwitchArrowsIcon />
+                </div>
+              </button>
+            </div>
+            <div ref={codeContainerRef} onMouseUp={handleMouseUp} className="h-[calc(100vh-20px)] overflow-auto">
+              {isOutput ? <div className="markdown">
+                <ReactMarkdown>{markdownContent}</ReactMarkdown>
+              </div> : <SyntaxHighlighter language="java" style={darcula} showLineNumbers>
                 {selectedFileContent}
-              </SyntaxHighlighter>
+              </SyntaxHighlighter>}
+
+
             </div>
             {buttonPosition && (
               <button

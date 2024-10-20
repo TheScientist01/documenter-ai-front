@@ -35,19 +35,10 @@ interface PigmentSpinnerProps extends ColorProps, StyleProps {
 
 // component
 
-function _Spinner(
-  props: PigmentSpinnerProps,
-  ref: ForwardedRef<HTMLDivElement>
-) {
+function _Spinner(props: PigmentSpinnerProps, ref: ForwardedRef<HTMLDivElement>) {
   const { color = "default", size = "md", className, style } = props;
 
-  return (
-    <div
-      ref={ref}
-      className={spinnerStyles({ color, size, className })}
-      style={style}
-    />
-  );
+  return <div ref={ref} className={spinnerStyles({ color, size, className })} style={style} />;
 }
 
 const Spinner = forwardRef(_Spinner);

@@ -708,7 +708,7 @@ export function DropFolder({
   return (
     <div className="w-full">
       {folder?.length ? (
-        <div className="flex items-center px-3 pb-2 text-base font-bold">
+        <div className="flex items-center justify-between px-3 pb-2 text-base font-bold">
           <div>{rootFolderName ? rootFolderName.toUpperCase() : "PROJECT"}</div>
           <div onClick={handleRemove} className="h-4 cursor-pointer">
             <RemoveIcon />
@@ -743,13 +743,13 @@ export function DropFolder({
               }
             }}
           >
-            <Button
+            {/* <Button
               size="xs"
               color="primary"
               className="ml-3 bg-transparent p-0 text-[15px] text-coral outline-none hover:text-snow"
             >
               add files
-            </Button>
+            </Button> */}
           </FileTrigger>
         </div>
       ) : null}
@@ -763,7 +763,7 @@ export function DropFolder({
           <div className="!p-0">
             {!folder?.length ? (
               <div
-                className="relative flex h-[calc(100vh-150px)] flex-col items-center justify-center gap-1 rounded-[12px] p-[39px]"
+                className="relative flex h-[calc(100vh-50px)] flex-col items-center justify-center gap-1 rounded-[12px] p-[39px]"
                 {...getRootProps()}
               >
                 <input {...getInputProps()} />
@@ -774,10 +774,32 @@ export function DropFolder({
                 </p>
                 {!dragEnter ? (
                   <FileTrigger
-                    allowsMultiple
+                    // allowsMultiple
                     onSelect={(e) => {
                       if (e) {
-                        openFolder([...(e as any)]);
+                        const filePaths = ([...(e as any)]);
+                        if (folderSizeValidator(filePaths)) {
+                          // let files: any[] = [];
+                          // await getFiles(files);
+                          // @ts-ignore
+                          setFolder((prev: any) =>
+                            sortFolder([
+                              ...prev,
+                              ...filePaths.map((file: any) => ({
+                                name: file.name,
+                                kind: "file" as "file",
+                                path:
+                                  file.webkitRelativePath !== ""
+                                    ? file.webkitRelativePath
+                                    : file.name,
+                              })),
+                            ])
+                          );
+
+                          setFilePaths((prev: any) =>
+                            prev ? [...prev, ...filePaths] : filePaths
+                          );
+                        }
                       }
                     }}
                   >
