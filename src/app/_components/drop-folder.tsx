@@ -335,10 +335,8 @@ export function DropFolder({
         return folders
           ? folders.filter((child) => {
             if (child.path === file.path) {
-              // Found the target folder, exclude it from the result
               return false;
             } else if (child.children) {
-              // Recursively filter children
               child.children = deleteFolder(child.children);
             }
             return true;
