@@ -6,3 +6,9 @@ export function usePostFileMutation() {
         mutationFn: (formData: FormData) => UploadApi.uploadFile(formData),
     });
 }
+
+export function usePostTextMutation() {
+    return useMutation({
+        mutationFn: (code: string) => UploadApi.uploadCode(code),
+    });
+}

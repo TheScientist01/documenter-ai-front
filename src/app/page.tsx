@@ -6,8 +6,8 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { darcula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import Logo from "@/assets/images/logo.png"
 import Image from "next/image";
-import { SwitchArrowsIcon } from "@/assets/icons";
-import { usePostFileMutation } from "@/api/upload";
+import { SwitchArrowsIcon, SwitchBetweenIcon } from "@/assets/icons";
+import { usePostFileMutation, usePostTextMutation } from "@/api/upload";
 import {
   HydrationBoundary,
   QueryClient,
@@ -49,7 +49,8 @@ function HomePageContent() {
   const [isOutput, setIsOutput] = useState<boolean>(false)
   const [markdownContent, setMarkdownContent] = useState<string>('');
 
-  const { mutate: upload, isPending, data } = usePostFileMutation()
+  const { mutate: uploadFile, isPending, data } = usePostFileMutation()
+  const { mutate: uploadText, isPending: isPendingCode, data: codeData } = usePostTextMutation()
 
   const handleFileClick = (path: string) => {
     const file = filePaths.find((file: any) => (file?.path ? file.path.split("/").slice(2).join("/") : file.name) === path)
@@ -101,7 +102,9 @@ function HomePageContent() {
   };
 
   const handleButtonClick = () => {
-    console.log(`You selected: "${selectedText}"`);
+    uploadText(selectedText)
+    setSelectedText("")
+    setIsButtonVisible(false)
   };
 
   useEffect(() => {
@@ -139,6 +142,28 @@ function HomePageContent() {
     }
   }, [data]);
 
+
+  useEffect(() => {
+    if (codeData && codeData.data && codeData.data.download_link) {
+      const downloadUrl = codeData.data.download_link;
+
+      // Fetch the markdown file content
+      fetch(downloadUrl)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.text();
+        })
+        .then((text) => {
+          setMarkdownContent(text); // Set the Markdown content
+        })
+        .catch((error) => {
+          console.error("There was an error fetching the markdown file:", error);
+        });
+    }
+  }, [codeData]);
+
   return (
     <div style={styles.wrapper}>
       {/* @ts-ignore */}
@@ -165,17 +190,17 @@ function HomePageContent() {
               {!isOutput && <button onClick={() => {
                 const formData = new FormData();
                 selectedFile && formData.append("file", selectedFile)
-                upload(formData)
+                uploadFile(formData)
               }}
-                disabled={isPending}
-                className={`py-2 px-3 rounded-md bg-[#181818] duration-300 font-semibold ${!isPending && "hover:scale-[1.05] "}`}>
-                <div className={`${isPending && "opacity-50"}`}>
+                disabled={(isPending || isPendingCode)}
+                className={`py-2 px-3 rounded-md bg-[#181818] duration-300 font-semibold ${(!isPending || !isPendingCode) && "hover:scale-[1.05] "}`}>
+                <div className={`${(isPending || isPendingCode) && "opacity-50"}`}>
                   File documentation
                 </div>
               </button>}
-              <button onClick={() => { setIsOutput(prev => !prev) }} className={`p-2 rounded-md bg-[#181818] hover:scale-[1.05] duration-300 ${!isPending && "hover:scale-[1.05] "}`} disabled={isPending || !markdownContent}>
-                <div style={{ transform: `rotate(${isOutput ? "180" : "0"}deg)` }} className={`transition-transform duration-300 ease-in-out ${isPending && "rotate-infinite opacity-50"}`}>
-                  <SwitchArrowsIcon />
+              <button onClick={() => { setIsOutput(prev => !prev) }} className={`p-2 rounded-md bg-[#181818] hover:scale-[1.05] duration-300 ${!isPending || !isPendingCode && "hover:scale-[1.05] "}`} disabled={isPending || !markdownContent || isPendingCode}>
+                <div style={{ transform: `rotate(${(isOutput || isPendingCode) ? "180" : "0"}deg)` }} className={`transition-transform duration-300 ease-in-out ${(isPending || isPendingCode) && "rotate-infinite opacity-50"}`}>
+                  {(isPending || isPendingCode) ? <SwitchArrowsIcon /> : <SwitchBetweenIcon />}
                 </div>
               </button>
             </div>
