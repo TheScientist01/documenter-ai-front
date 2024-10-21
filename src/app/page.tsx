@@ -51,14 +51,8 @@ function HomePageContent() {
 
   const { mutate: upload, isPending, data } = usePostFileMutation()
 
-  console.log(folder);
-  
-
   const handleFileClick = (path: string) => {
-    const file = filePaths.find((file: any) => file?.path ? file.path.split("/").slice(2).join("/") : file.name === path)
-
-    console.log(file, filePaths);
-
+    const file = filePaths.find((file: any) => (file?.path ? file.path.split("/").slice(2).join("/") : file.name) === path)
 
     if (!!file) {
       setActiveFilePath(path)
